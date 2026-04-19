@@ -1,90 +1,110 @@
 package com.rulloa.s3c.logimascota.controller;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import com.rulloa.s3c.logimascota.dto.EnvioCreateRequestDto;
+import com.rulloa.s3c.logimascota.dto.EnvioStatusUpdateRequestDto;
+import com.rulloa.s3c.logimascota.dto.UbicacionRequestDto;
 import com.rulloa.s3c.logimascota.model.Envio;
 import com.rulloa.s3c.logimascota.model.Producto;
 import com.rulloa.s3c.logimascota.model.Ubicacion;
+import com.rulloa.s3c.logimascota.service.EnvioService;
+import com.rulloa.s3c.logimascota.service.ProductoService;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
+import org.springframework.validation.annotation.Validated;
+import lombok.extern.slf4j.Slf4j;
+
+
 
 
 
 @RestController
 @RequestMapping("/envios")
+@Slf4j
+@Validated
 public class EnviosController {
-    private List<Envio> envios = new ArrayList<>();
+    private final EnvioService envioService;
+    private final ProductoService productoService;
 
-    public EnviosController() {
-        // Agregar algunos envíos de ejemplo
-        envios.add(new Envio("1", "Calle Falsa 123, Las Condes", List.of(
-                new Producto("p1", "Comida para perros", 20.0, 2.0),
-                new Producto("p2", "Juguete para gatos", 15.0, 0.5)
-        )));
-
-        envios.add(new Envio("2", "Avenida Siempre Viva 456, Vitacura", List.of(
-                new Producto("p3", "Arena para gatos", 10.0, 5.0),
-                new Producto("p4", "Collar para perros", 25.0, 0.3)
-        )));
-
-        envios.add(new Envio("3", "Boulevard de los Sueños Rotos 789, Ñuñoa", List.of(
-                new Producto("p5", "Cama para perros", 50.0, 10.0),
-                new Producto("p6", "Rascador para gatos", 30.0, 3.0)
-        )));
-
-        envios.add(new Envio("4","Loteo San Vicente 7, Pirque", List.of(
-                new Producto("p7", "Comida para gatos", 20.0, 2.0),
-                new Producto("p8", "Juguete para perros", 15.0, 0.5)
-        )));
-
-        envios.get(0).avanzaEstado();
-        envios.get(0).avanzaEstado();
-        envios.get(1).avanzaEstado();
-        envios.get(2).avanzaEstado();
+    public EnviosController(EnvioService envioService, ProductoService productoService) {
+        this.envioService = envioService;
+        this.productoService = productoService;
     }
 
     @GetMapping("list")
     public List<Envio> getEnvios() {
-        return envios;
+        log.debug("Listando envios");
+        return envioService.getEnvios();
     }
 
     @GetMapping("ubicacion/{idenvio}")
-    public Ubicacion getUbicacion(@PathVariable String idenvio) {
-        int id = 0;
-        try {
-            id = Integer.parseInt(idenvio);
-        } catch (NumberFormatException e) {
-            return null;
-        }
-        if (id <= 0) {
-            return null;
-        }
-        for (int i = 0; i < envios.size(); i++) {
-            if (envios.get(i).getId().equals(idenvio)) {
-                return envios.get(i).getUbicacion();
-            }
-        }
-        return null;
+    public Ubicacion getUbicacion(@PathVariable @Positive(message = "El idenvio debe ser mayor a 0") int idenvio) {
+        log.debug("Consultando ubicacion actual para envio {}", idenvio);
+        return envioService.getUbicacion(idenvio);
+    }
+
+    @GetMapping("ubicaciones/{idenvio}")
+    public List<Ubicacion> getHistorialUbicaciones(
+            @PathVariable @Positive(message = "El idenvio debe ser mayor a 0") int idenvio) {
+        log.debug("Consultando historial de ubicaciones para envio {}", idenvio);
+        return envioService.getHistorialUbicaciones(idenvio);
+    }
+
+    @PostMapping("ubicacion/{idenvio}")
+    public Envio addUbicacion(
+            @PathVariable @Positive(message = "El idenvio debe ser mayor a 0") int idenvio,
+            @Valid @RequestBody UbicacionRequestDto request) {
+        log.info("Agregando ubicacion para envio {}", idenvio);
+        Ubicacion ubicacion = new Ubicacion(request.getLatitud(), request.getLongitud());
+        return envioService.addUbicacion(idenvio, ubicacion);
     }
     
     
 
     @PostMapping("add")
-    public Envio postMethodName(@RequestBody Envio envio) {
-        envios.add(envio);
-        return envio;
+    public Envio postMethodName(@Valid @RequestBody EnvioCreateRequestDto request) {
+        log.info("Creando nuevo envio con {} productos", request.getProductoIds().size());
+        List<Producto> productos = request.getProductoIds().stream()
+                .map(productoService::getProducto)
+                .collect(Collectors.toList());
+
+        Envio envio = new Envio();
+        envio.setDireccion(request.getDireccion());
+        envio.setProductos(productos);
+        envio.setEstado(Envio.Estado.PENDIENTE);
+
+        return envioService.addEnvio(envio);
     }
 
-    @PostMapping("update")
-    public Envio updateEnvioStatus(@RequestBody Envio envio) {
-        for (int i = 0; i < envios.size(); i++) {
-            if (envios.get(i).getId().equals(envio.getId())) {
-                envios.set(i, envio);
-                break;
-            }
-        }
-        
-        return envio;
+    @PutMapping("update")
+    public Envio updateEnvioStatus(@Valid @RequestBody EnvioStatusUpdateRequestDto request) {
+        log.info("Actualizando estado para envio {} a {}", request.getId(), request.getEstado());
+        Envio envio = new Envio();
+        envio.setId(request.getId());
+        envio.setEstado(request.getEstado());
+        return envioService.updateEnvioStatus(envio);
+    }
+
+    @PatchMapping("{idenvio}/avanza")
+    public Envio avanzaEstado(@PathVariable @Positive(message = "El idenvio debe ser mayor a 0") int idenvio) {
+        log.info("Avanzando estado para envio {}", idenvio);
+        return envioService.avanzaEstado(idenvio);
+    }
+
+    @PatchMapping("{idenvio}/retrocede")
+    public Envio retrocedeEstado(@PathVariable @Positive(message = "El idenvio debe ser mayor a 0") int idenvio) {
+        log.info("Retrocediendo estado para envio {}", idenvio);
+        return envioService.retrocedeEstado(idenvio);
+    }
+
+    @DeleteMapping("delete/{idenvio}")
+    public void deleteEnvio(@PathVariable @Positive(message = "El idenvio debe ser mayor a 0") int idenvio) {
+        log.warn("Eliminando envio {}", idenvio);
+        envioService.deleteEnvio(idenvio);
     }
     
     
