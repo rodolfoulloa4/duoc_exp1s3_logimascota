@@ -5,7 +5,7 @@ COPY pom.xml ./
 COPY src ./src
 COPY wallet ./wallet
 
-RUN mvn -q -DskipTests package
+RUN mvn clean package
 
 FROM eclipse-temurin:25-jre
 WORKDIR /app
