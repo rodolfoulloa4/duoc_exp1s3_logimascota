@@ -28,26 +28,30 @@ public class EnvioServiceImpl implements EnvioService {
     }
 
     @Override
+    public Envio getEnvio(int idenvio) {
+        log.debug("Consultando envio {}", idenvio);
+        return enviosReposiroty.findById(idenvio)
+                .orElseThrow(() -> new ResourceNotFoundException("Envio no encontrado: " + idenvio));
+    }
+
+    @Override
     public Ubicacion getUbicacion(int idenvio) {
         log.debug("Consultando ubicacion actual para envio {}", idenvio);
-        Envio env = enviosReposiroty.findById(idenvio)
-                .orElseThrow(() -> new ResourceNotFoundException("Envio no encontrado: " + idenvio));
+        Envio env = getEnvio(idenvio);
         return env.getUbicacionActual();
     }
 
     @Override
     public List<Ubicacion> getHistorialUbicaciones(int idenvio) {
         log.debug("Consultando historial de ubicaciones para envio {}", idenvio);
-        Envio env = enviosReposiroty.findById(idenvio)
-                .orElseThrow(() -> new ResourceNotFoundException("Envio no encontrado: " + idenvio));
+        Envio env = getEnvio(idenvio);
         return new ArrayList<>(env.getHistorialUbicaciones());
     }
 
     @Override
     public Envio addUbicacion(int idenvio, Ubicacion ubicacion) {
         log.info("Agregando nueva ubicacion al envio {}", idenvio);
-        Envio env = enviosReposiroty.findById(idenvio)
-                .orElseThrow(() -> new ResourceNotFoundException("Envio no encontrado: " + idenvio));
+        Envio env = getEnvio(idenvio);
         env.agregarUbicacion(ubicacion);
         return enviosReposiroty.save(env);
     }
@@ -70,8 +74,7 @@ public class EnvioServiceImpl implements EnvioService {
     @Override
     public void deleteEnvio(int idenvio) {
         log.warn("Eliminando envio {}", idenvio);
-        Envio existingEnvio = enviosReposiroty.findById(idenvio)
-                .orElseThrow(() -> new ResourceNotFoundException("Envio no encontrado: " + idenvio));
+        Envio existingEnvio = getEnvio(idenvio);
         enviosReposiroty.delete(existingEnvio);
         
     }
@@ -79,8 +82,7 @@ public class EnvioServiceImpl implements EnvioService {
     @Override
     public Envio avanzaEstado(int idenvio) {
         log.info("Avanzando estado para envio {}", idenvio);
-        Envio existingEnvio = enviosReposiroty.findById(idenvio)
-                .orElseThrow(() -> new ResourceNotFoundException("Envio no encontrado: " + idenvio));
+        Envio existingEnvio = getEnvio(idenvio);
         existingEnvio.avanzaEstado();
         return enviosReposiroty.save(existingEnvio);
     }
@@ -88,8 +90,7 @@ public class EnvioServiceImpl implements EnvioService {
     @Override
     public Envio retrocedeEstado(int idenvio) { 
         log.info("Retrocediendo estado para envio {}", idenvio);
-        Envio existingEnvio = enviosReposiroty.findById(idenvio)
-                .orElseThrow(() -> new ResourceNotFoundException("Envio no encontrado: " + idenvio));
+        Envio existingEnvio = getEnvio(idenvio);
         existingEnvio.retrocedeEstado();
         return enviosReposiroty.save(existingEnvio);
     }

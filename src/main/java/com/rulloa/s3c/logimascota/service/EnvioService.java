@@ -6,6 +6,7 @@ import com.rulloa.s3c.logimascota.model.Ubicacion;
 
 public interface EnvioService {
     List<Envio> getEnvios();
+    Envio getEnvio(int idenvio);
     Ubicacion getUbicacion(int idenvio);
     List<Ubicacion> getHistorialUbicaciones(int idenvio);
     Envio addUbicacion(int idenvio, Ubicacion ubicacion);

@@ -1,10 +1,15 @@
 package com.rulloa.s3c.logimascota.controller;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
 import java.util.List;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,6 +22,7 @@ import org.springframework.validation.annotation.Validated;
 
 import com.rulloa.s3c.logimascota.dto.ProductoCreateRequestDto;
 import com.rulloa.s3c.logimascota.dto.ProductoUpdateRequestDto;
+import com.rulloa.s3c.logimascota.hateoas.ProductoModelAssembler;
 import com.rulloa.s3c.logimascota.model.Producto;
 import com.rulloa.s3c.logimascota.service.ProductoService;
 
@@ -29,42 +35,49 @@ import lombok.extern.slf4j.Slf4j;
 public class ProductosController {
 
     private final ProductoService productoService;
+    private final ProductoModelAssembler productoModelAssembler;
 
-    public ProductosController(ProductoService productoService) {
+    public ProductosController(ProductoService productoService, ProductoModelAssembler productoModelAssembler) {
         this.productoService = productoService;
+        this.productoModelAssembler = productoModelAssembler;
     }
 
     @GetMapping("list")
-    public List<Producto> getProductos() {
+    public CollectionModel<EntityModel<Producto>> getProductos() {
         log.debug("Listando productos");
-        return productoService.getProductos();
+        List<EntityModel<Producto>> productos = productoService.getProductos().stream()
+                .map(productoModelAssembler::toModel)
+                .toList();
+        return CollectionModel.of(productos,
+            linkTo(methodOn(ProductosController.class).getProductos()).withSelfRel());
     }
 
     @GetMapping("{idproducto}")
-    public Producto getProducto(@PathVariable @Positive(message = "El idproducto debe ser mayor a 0") int idproducto) {
+    public EntityModel<Producto> getProducto(
+            @PathVariable @Positive(message = "El idproducto debe ser mayor a 0") int idproducto) {
         log.debug("Buscando producto {}", idproducto);
-        return productoService.getProducto(idproducto);
+        return productoModelAssembler.toModel(productoService.getProducto(idproducto));
     }
 
     @PostMapping("add")
-    public Producto addProducto(@Valid @RequestBody ProductoCreateRequestDto request) {
+    public EntityModel<Producto> addProducto(@Valid @RequestBody ProductoCreateRequestDto request) {
         log.info("Creando producto {}", request.getNombre());
         Producto producto = new Producto();
         producto.setNombre(request.getNombre());
         producto.setPrecio(request.getPrecio());
         producto.setPeso(request.getPeso());
-        return productoService.addProducto(producto);
+        return productoModelAssembler.toModel(productoService.addProducto(producto));
     }
 
     @PutMapping("update")
-    public Producto updateProducto(@Valid @RequestBody ProductoUpdateRequestDto request) {
+    public EntityModel<Producto> updateProducto(@Valid @RequestBody ProductoUpdateRequestDto request) {
         log.info("Actualizando producto {}", request.getId());
         Producto producto = new Producto();
         producto.setId(request.getId());
         producto.setNombre(request.getNombre());
         producto.setPrecio(request.getPrecio());
         producto.setPeso(request.getPeso());
-        return productoService.updateProducto(producto);
+        return productoModelAssembler.toModel(productoService.updateProducto(producto));
     }
 
     @DeleteMapping("delete/{idproducto}")
