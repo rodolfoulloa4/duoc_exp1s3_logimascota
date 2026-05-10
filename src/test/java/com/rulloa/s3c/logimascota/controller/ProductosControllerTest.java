@@ -1,6 +1,7 @@
 package com.rulloa.s3c.logimascota.controller;
 
 import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -74,5 +75,13 @@ class ProductosControllerTest {
                 .andExpect(jsonPath("$.validations.nombre").exists())
                 .andExpect(jsonPath("$.validations.precio").value("El precio debe ser mayor a 0"))
                 .andExpect(jsonPath("$.validations.peso").value("El peso debe ser mayor a 0"));
+    }
+
+    @Test
+    void shouldRejectNonPositiveProductoIdPathParam() throws Exception {
+        mockMvc.perform(get("/productos/0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message", containsString("idproducto")));
     }
 }

@@ -70,4 +70,12 @@ class EnviosControllerTest {
                 .andExpect(jsonPath("$._links.avanzarEstado.href", endsWith("/envios/7/avanza")))
                 .andExpect(jsonPath("$._links.retrocederEstado.href", endsWith("/envios/7/retrocede")));
     }
+
+    @Test
+    void shouldRejectNonNumericEnvioIdPathParam() throws Exception {
+        mockMvc.perform(get("/envios/abc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_PARAMETER"))
+                .andExpect(jsonPath("$.message").value("Parametro invalido: idenvio"));
+    }
 }

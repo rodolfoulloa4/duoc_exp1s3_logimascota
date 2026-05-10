@@ -3,6 +3,8 @@ package com.rulloa.s3c.logimascota.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -62,5 +64,16 @@ class ProductoServiceImplTest {
                 () -> productoService.getProducto(99));
 
         assertEquals("Producto no encontrado: 99", exception.getMessage());
+    }
+
+    @Test
+    void shouldThrowWhenDeletingNonExistingProducto() {
+        when(productosRepository.findById(77)).thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+                () -> productoService.deleteProducto(77));
+
+        assertEquals("Producto no encontrado: 77", exception.getMessage());
+        verify(productosRepository, never()).delete(any(Producto.class));
     }
 }

@@ -29,4 +29,11 @@ class LogimascotaApplicationTests {
 		assertEquals(com.rulloa.s3c.logimascota.model.Envio.Estado.ENTREGADO, envio.getEstado());
 	}
 
+	@Test
+	void shouldKeepPendienteWhenRetrocedeFromInitialState() {
+		envio.retrocedeEstado();
+
+		assertEquals(com.rulloa.s3c.logimascota.model.Envio.Estado.PENDIENTE, envio.getEstado());
+	}
+
 }
